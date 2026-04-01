@@ -1,0 +1,38 @@
+{
+  "name": "baodo-frontend",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "nuxt": "^4.4.2",
+    "vue": "^3.5.31",
+    "vue-router": "^5.0.4",
+    "@pinia/nuxt": "latest",
+    "pinia": "latest",
+    "@vite-pwa/nuxt": "latest",
+    "primevue": "latest",
+    "@primevue/nuxt-module": "latest",
+    "@primevue/themes": "latest",
+    "@nuxtjs/tailwindcss": "latest",
+    "@nuxtjs/color-mode": "latest",
+    "@nuxtjs/google-fonts": "latest",
+    "@vueuse/nuxt": "latest",
+    "@vueuse/core": "latest",
+    "@supabase/supabase-js": "latest",
+    "dexie": "latest",
+    "howler": "latest",
+    "pinia-plugin-persistedstate": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/howler": "latest",
+    "tailwindcss": "latest",
+    "autoprefixer": "latest"
+  }
+}

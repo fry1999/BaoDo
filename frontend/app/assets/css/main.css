@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 37 99 235;
+    --color-success: 22 163 74;
+    --color-warning: 217 119 6;
+    --color-error: 220 38 38;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+}
+
+@layer components {
+  /* Flashcard flip */
+  .flip-card {
+    perspective: 1000px;
+  }
+
+  .flip-card-inner {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+
+  .flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-front,
+  .flip-card-back {
+    backface-visibility: hidden;
+  }
+
+  .flip-card-back {
+    transform: rotateY(180deg);
+  }
+
+  /* Dictation highlight */
+  .dictation-correct  { @apply bg-green-50 text-green-800; }
+  .dictation-wrong    { @apply bg-red-100 text-red-700 underline; }
+  .dictation-missing  { @apply bg-yellow-100 text-yellow-700; }
+  .dictation-extra    { @apply bg-gray-100 text-gray-400 line-through; }
+
+  /* Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar       { @apply w-1.5; }
+  .custom-scrollbar::-webkit-scrollbar-track { @apply bg-gray-100 rounded-full; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full hover:bg-gray-400; }
+}
