@@ -18,7 +18,12 @@ public class AuthService(AppDbContext db, IConfiguration config) : IAuthService
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct)
             ?? throw new KeyNotFoundException("Email hoặc mật khẩu không đúng");
 
-        // In production: verify hashed password
+        if (user.Role == UserRole.Banned)
+            throw new UnauthorizedAccessException("Tài khoản của bạn đã bị khóa");
+
+        if (user.PasswordHash is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            throw new KeyNotFoundException("Email hoặc mật khẩu không đúng");
+
         var token = GenerateJwt(user);
         return (token, user);
     }
@@ -33,7 +38,7 @@ public class AuthService(AppDbContext db, IConfiguration config) : IAuthService
             Id = Guid.NewGuid(),
             Email = email,
             FullName = fullName,
-            // In production: hash password
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
         };
 
         db.Users.Add(user);

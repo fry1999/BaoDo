@@ -6,6 +6,7 @@ public class UserProfile
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
+    public string? PasswordHash { get; set; }
     public UserRole Role { get; set; } = UserRole.User;
     public SubscriptionPlan Subscription { get; set; } = SubscriptionPlan.Free;
     public int TargetScore { get; set; } = 700;
@@ -22,5 +23,5 @@ public class UserProfile
     public ICollection<Subscription> Subscriptions { get; set; } = [];
 }
 
-public enum UserRole { User, ContentEditor, Admin }
+public enum UserRole { User, ContentEditor, Admin, Banned }
 public enum SubscriptionPlan { Free, Basic, Pro }

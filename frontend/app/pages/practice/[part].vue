@@ -20,6 +20,79 @@
       <p>Chưa có câu hỏi nào cho Part này</p>
     </div>
 
+    <!-- Session summary screen -->
+    <template v-else-if="showSummary && sessionResult">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-card p-6 text-center">
+        <p class="text-5xl mb-4">{{ sessionResult.percentage >= 80 ? '🎉' : sessionResult.percentage >= 60 ? '👍' : '💪' }}</p>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Kết quả phiên luyện tập</h2>
+        <p class="text-gray-500 mt-1 text-sm">Part {{ part }}</p>
+
+        <!-- Score ring -->
+        <div class="my-6 flex items-center justify-center gap-8">
+          <div class="text-center">
+            <p class="text-4xl font-bold" :class="sessionResult.percentage >= 80 ? 'text-green-500' : sessionResult.percentage >= 60 ? 'text-primary' : 'text-red-500'">
+              {{ sessionResult.percentage }}%
+            </p>
+            <p class="text-sm text-gray-500 mt-1">Chính xác</p>
+          </div>
+          <div class="text-center">
+            <p class="text-4xl font-bold text-gray-900 dark:text-white">{{ sessionResult.correct }}/{{ sessionResult.total }}</p>
+            <p class="text-sm text-gray-500 mt-1">Câu đúng</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 justify-center">
+          <button
+            class="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50"
+            @click="restart"
+          >
+            Luyện lại
+          </button>
+          <NuxtLink
+            to="/practice"
+            class="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark"
+          >
+            Chọn Part khác
+          </NuxtLink>
+        </div>
+      </div>
+
+      <!-- Wrong answers review -->
+      <div v-if="wrongItems.length > 0" class="space-y-3">
+        <h3 class="font-semibold text-gray-900 dark:text-white">Câu sai ({{ wrongItems.length }})</h3>
+        <div
+          v-for="(item, idx) in wrongItems"
+          :key="item.questionId"
+          class="bg-white dark:bg-slate-900 rounded-xl shadow-card p-5 border-l-4 border-red-400"
+        >
+          <p class="text-xs text-gray-400 mb-2">Câu {{ idx + 1 }}</p>
+          <p v-if="item.questionText" class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            {{ item.questionText }}
+          </p>
+          <div class="space-y-1.5 mb-3">
+            <div
+              v-for="(opt, oi) in item.options"
+              :key="oi"
+              class="px-3 py-2 rounded-lg text-sm border"
+              :class="{
+                'border-green-500 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300': oi === item.correctIndex,
+                'border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300': oi === item.selectedIndex && oi !== item.correctIndex,
+                'border-gray-100 dark:border-slate-800 text-gray-500': oi !== item.correctIndex && oi !== item.selectedIndex,
+              }"
+            >
+              <span class="font-semibold mr-2 text-gray-400">{{ String.fromCharCode(65 + oi) }}.</span>
+              {{ opt }}
+              <span v-if="oi === item.correctIndex" class="ml-2 text-xs font-semibold text-green-600">(Đúng)</span>
+              <span v-if="oi === item.selectedIndex && oi !== item.correctIndex" class="ml-2 text-xs font-semibold text-red-500">(Bạn chọn)</span>
+            </div>
+          </div>
+          <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
+            <span class="font-semibold">Giải thích: </span>{{ item.explanation }}
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- Question -->
     <template v-else>
       <!-- Progress -->
@@ -97,6 +170,14 @@
         >
           Câu tiếp →
         </button>
+        <button
+          v-else
+          :disabled="!isAnswered || isSubmitting"
+          class="px-5 py-2 text-sm bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold disabled:opacity-50 transition-colors"
+          @click="finishSession"
+        >
+          {{ isSubmitting ? 'Đang tính...' : 'Xem kết quả →' }}
+        </button>
       </div>
     </template>
   </div>
@@ -112,14 +193,41 @@ const part = computed(() => Number(route.params.part) as ToeicPart)
 const config = useRuntimeConfig()
 const auth = useAuthStore()
 
+interface SessionResultItem {
+  questionId: string
+  selectedIndex: number
+  isCorrect: boolean
+  correctIndex: number
+  explanation: string
+  questionText?: string
+  options: string[]
+}
+
+interface SessionResult {
+  correct: number
+  total: number
+  percentage: number
+  items: SessionResultItem[]
+}
+
 const questions = ref<Question[]>([])
 const currentIndex = ref(0)
 const selectedAnswer = ref<number | null>(null)
 const isLoading = ref(false)
+const isSubmitting = ref(false)
+const showSummary = ref(false)
+const sessionResult = ref<SessionResult | null>(null)
+
+// Track all answers for session submit
+const sessionAnswers = ref<Array<{ questionId: string; selectedIndex: number }>>([])
 
 const currentQ = computed(() => questions.value[currentIndex.value] ?? null)
 const isAnswered = computed(() => selectedAnswer.value !== null)
 const isCorrect = computed(() => selectedAnswer.value === currentQ.value?.correctIndex)
+
+const wrongItems = computed(() =>
+  sessionResult.value?.items.filter(i => !i.isCorrect) ?? [],
+)
 
 onMounted(async () => {
   isLoading.value = true
@@ -128,7 +236,9 @@ onMounted(async () => {
       query: { part: part.value, limit: 20 },
       headers: { Authorization: `Bearer ${auth.token}` },
     })
-  } finally {
+    sessionAnswers.value = []
+  }
+  finally {
     isLoading.value = false
   }
 })
@@ -144,12 +254,22 @@ function getOptionClass(oi: number) {
       ? 'border-primary bg-primary-light text-primary'
       : 'border-gray-200 dark:border-slate-700 hover:border-primary hover:bg-primary-light/30'
   }
-  if (oi === currentQ.value?.correctIndex) return 'border-green-500 bg-green-50 text-green-800'
-  if (oi === selectedAnswer.value) return 'border-red-400 bg-red-50 text-red-700'
+  if (oi === currentQ.value?.correctIndex) return 'border-green-500 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+  if (oi === selectedAnswer.value) return 'border-red-400 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
   return 'border-gray-200 dark:border-slate-700 opacity-50'
 }
 
+function recordAnswer() {
+  if (currentQ.value && selectedAnswer.value !== null) {
+    const existing = sessionAnswers.value.find(a => a.questionId === currentQ.value!.id)
+    if (!existing) {
+      sessionAnswers.value.push({ questionId: currentQ.value.id, selectedIndex: selectedAnswer.value })
+    }
+  }
+}
+
 function next() {
+  recordAnswer()
   currentIndex.value++
   selectedAnswer.value = null
 }
@@ -157,6 +277,40 @@ function next() {
 function prev() {
   currentIndex.value--
   selectedAnswer.value = null
+}
+
+async function finishSession() {
+  recordAnswer()
+  isSubmitting.value = true
+  try {
+    const payload = sessionAnswers.value
+    sessionResult.value = await $fetch<SessionResult>(`${config.public.apiBaseUrl}/api/practice/session`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${auth.token}` },
+      body: payload,
+    })
+    showSummary.value = true
+  }
+  finally {
+    isSubmitting.value = false
+  }
+}
+
+function restart() {
+  showSummary.value = false
+  sessionResult.value = null
+  sessionAnswers.value = []
+  currentIndex.value = 0
+  selectedAnswer.value = null
+  // Reload questions
+  isLoading.value = true
+  $fetch<Question[]>(`${config.public.apiBaseUrl}/api/practice`, {
+    query: { part: part.value, limit: 20 },
+    headers: { Authorization: `Bearer ${auth.token}` },
+  }).then(data => {
+    questions.value = data
+    isLoading.value = false
+  })
 }
 
 function playAudio() {

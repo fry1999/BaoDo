@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BaoDo.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1ff5cbab6db1f72b68060beafd53204dd1f584aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+38ed958d0e9956f7c69cc477e8ae42270e1116bd")]
 [assembly: System.Reflection.AssemblyProductAttribute("BaoDo.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BaoDo.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

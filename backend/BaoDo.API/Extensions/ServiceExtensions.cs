@@ -16,6 +16,7 @@ public static class ServiceExtensions
         services.AddScoped<IExamService, ExamService>();
         services.AddScoped<IDictionaryService, DictionaryService>();
         services.AddScoped<IAICoachService, AICoachService>();
+        services.AddScoped<IRankingService, RankingService>();
 
         return services;
     }

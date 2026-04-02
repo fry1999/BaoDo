@@ -124,26 +124,26 @@
 </template>
 
 <script setup lang="ts">
-import type { UserTestResult } from '~/types'
+import type { ExamResultDto } from '~/types'
 
 definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
 const authStore = useAuthStore()
 const config = useRuntimeConfig()
-const auth = useAuthStore()
 
-const result = ref<UserTestResult | null>(null)
+const result = ref<ExamResultDto | null>(null)
 const isLoading = ref(false)
 
 onMounted(async () => {
   isLoading.value = true
   try {
-    result.value = await $fetch<UserTestResult>(
+    result.value = await $fetch<ExamResultDto>(
       `${config.public.apiBaseUrl}/api/exam/results/${route.params.id}`,
-      { headers: { Authorization: `Bearer ${auth.token}` } },
+      { headers: { Authorization: `Bearer ${authStore.token}` } },
     )
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 })

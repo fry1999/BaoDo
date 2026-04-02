@@ -27,7 +27,8 @@ public interface IExamService
     Task<IEnumerable<Test>> GetTestsAsync(CancellationToken ct = default);
     Task<(Test test, IEnumerable<Question> questions)> GetTestWithQuestionsAsync(Guid testId, CancellationToken ct = default);
     Task<UserTestResult> SubmitExamAsync(Guid userId, Guid testId, IEnumerable<UserTestAnswer> answers, CancellationToken ct = default);
-    Task<UserTestResult?> GetResultAsync(Guid resultId, CancellationToken ct = default);
+    Task<ExamResultDto?> GetResultAsync(Guid resultId, CancellationToken ct = default);
+    Task<IEnumerable<ExamHistoryItem>> GetHistoryAsync(Guid userId, int page, int pageSize, CancellationToken ct = default);
 }
 
 public interface IDictionaryService
@@ -45,6 +46,13 @@ public interface IAuthService
     Task<(string token, UserProfile user)> LoginAsync(string email, string password, CancellationToken ct = default);
     Task<(string token, UserProfile user)> RegisterAsync(string email, string password, string fullName, CancellationToken ct = default);
     Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken ct = default);
+}
+
+public interface IRankingService
+{
+    Task<IEnumerable<RankingEntry>> GetExamLeaderboardAsync(string period, int limit, CancellationToken ct);
+    Task<IEnumerable<RankingEntry>> GetXpLeaderboardAsync(int limit, CancellationToken ct);
+    Task<UserRankResult> GetMyRankAsync(Guid userId, string period, CancellationToken ct);
 }
 
 /// <summary>Lightweight DTO returned by the dictionary service (not an EF entity)</summary>

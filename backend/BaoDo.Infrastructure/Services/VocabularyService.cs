@@ -30,7 +30,21 @@ public class VocabularyService(AppDbContext db) : IVocabularyService
         card.LastReviewedAt = DateTime.UtcNow;
         card.Status = repetitions >= 5 ? SRSStatus.Mastered : rating >= 3 ? SRSStatus.Review : SRSStatus.Learning;
 
+        // Award XP: +5 for any review, bonus +10 when a card is first mastered
+        var xpGain = 5;
+        if (card.Status == SRSStatus.Mastered && repetitions == 5) xpGain += 10;
+        await AwardXpAsync(userId, xpGain, ct);
+
         await db.SaveChangesAsync(ct);
+    }
+
+    private async Task AwardXpAsync(Guid userId, int xp, CancellationToken ct)
+    {
+        var profile = await db.Users.FindAsync([userId], ct);
+        if (profile is null) return;
+        profile.XpTotal += xp;
+        profile.Level = profile.XpTotal / 500 + 1;
+        profile.LastActiveAt = DateTime.UtcNow;
     }
 
     public async Task<UserVocabularyCard> SaveWordAsync(Guid userId, string word, CancellationToken ct)

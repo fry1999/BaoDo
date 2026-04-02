@@ -16,6 +16,20 @@ public static class ExamEndpoints
             return Results.Ok(tests);
         });
 
+        group.MapGet("/history", async (
+            [FromQuery] int page,
+            [FromQuery] int pageSize,
+            IExamService examService,
+            HttpContext context,
+            CancellationToken ct) =>
+        {
+            var userId = GetUserId(context);
+            var safePage = page <= 0 ? 1 : page;
+            var safeSize = Math.Clamp(pageSize <= 0 ? 10 : pageSize, 1, 50);
+            var history = await examService.GetHistoryAsync(userId, safePage, safeSize, ct);
+            return Results.Ok(history);
+        });
+
         group.MapGet("/{testId:guid}", async (
             Guid testId,
             IExamService examService,

@@ -40,7 +40,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(opts =>
+    opts.AddPolicy("AdminOnly", p => p.RequireRole(nameof(BaoDo.Core.Models.UserRole.Admin))));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(opts =>
@@ -104,5 +105,7 @@ app.MapPracticeEndpoints();
 app.MapExamEndpoints();
 app.MapDictionaryEndpoints();
 app.MapAdminEndpoints();
+app.MapAdminExamEndpoints();
+app.MapRankingEndpoints();
 
 app.Run();

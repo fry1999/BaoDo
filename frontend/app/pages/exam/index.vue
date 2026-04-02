@@ -2,9 +2,17 @@
   <div class="space-y-6">
     <useHead><title>Thi thử</title></useHead>
 
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Thi thử TOEIC</h1>
-      <p class="text-sm text-gray-500 mt-0.5">Đề thi đầy đủ 200 câu, thời gian 120 phút</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Thi thử TOEIC</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Đề thi đầy đủ 200 câu, thời gian 120 phút</p>
+      </div>
+      <NuxtLink
+        to="/exam/history"
+        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary border border-gray-200 dark:border-slate-700 px-3 py-2 rounded-xl hover:border-primary transition-colors"
+      >
+        📊 Lịch sử thi
+      </NuxtLink>
     </div>
 
     <div v-if="isLoading" class="flex justify-center py-12">

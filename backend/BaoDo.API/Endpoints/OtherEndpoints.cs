@@ -64,7 +64,46 @@ public static class OtherEndpoints
                 .ToListAsync(ct);
             return Results.Ok(questions);
         });
+
+        group.MapPost("/session", async (
+            [FromBody] List<PracticeAnswerRequest> answers,
+            BaoDo.Infrastructure.Data.AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var questionIds = answers.Select(a => a.QuestionId).ToList();
+            var questions = await db.Questions
+                .Where(q => questionIds.Contains(q.Id))
+                .ToDictionaryAsync(q => q.Id, ct);
+
+            var results = answers.Select(a =>
+            {
+                questions.TryGetValue(a.QuestionId, out var q);
+                var isCorrect = q is not null && a.SelectedIndex == q.CorrectIndex;
+                return new
+                {
+                    a.QuestionId,
+                    a.SelectedIndex,
+                    IsCorrect = isCorrect,
+                    CorrectIndex = q?.CorrectIndex ?? -1,
+                    Explanation = q?.Explanation ?? string.Empty,
+                    QuestionText = q?.QuestionText,
+                    Options = q?.Options ?? [],
+                };
+            }).ToList();
+
+            var correct = results.Count(r => r.IsCorrect);
+            var total = results.Count;
+            return Results.Ok(new
+            {
+                Correct = correct,
+                Total = total,
+                Percentage = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0,
+                Items = results,
+            });
+        });
     }
+
+    public record PracticeAnswerRequest(Guid QuestionId, int SelectedIndex);
 
     public static void MapDictionaryEndpoints(this WebApplication app)
     {
@@ -82,22 +121,24 @@ public static class OtherEndpoints
 
     public static void MapAdminEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/admin").WithTags("Admin").RequireAuthorization();
+        var group = app.MapGroup("/api/admin").WithTags("Admin").RequireAuthorization("AdminOnly");
 
         group.MapGet("/stats", async (BaoDo.Infrastructure.Data.AppDbContext db, CancellationToken ct) =>
         {
-            var now = DateTime.UtcNow.Date;
+            var utcNow = DateTime.UtcNow;
+            var startOfTodayUtc = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0, DateTimeKind.Utc);
+            var startOfMonthUtc = new DateTime(utcNow.Year, utcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var stats = new
             {
                 TotalUsers = await db.Users.CountAsync(ct),
-                NewUsersToday = await db.Users.CountAsync(u => u.CreatedAt >= now, ct),
-                ActiveUsersToday = await db.Users.CountAsync(u => u.LastActiveAt >= now, ct),
-                TestsCompletedToday = await db.UserTestResults.CountAsync(r => r.CompletedAt >= now, ct),
+                NewUsersToday = await db.Users.CountAsync(u => u.CreatedAt >= startOfTodayUtc, ct),
+                ActiveUsersToday = await db.Users.CountAsync(u => u.LastActiveAt >= startOfTodayUtc, ct),
+                TestsCompletedToday = await db.UserTestResults.CountAsync(r => r.CompletedAt >= startOfTodayUtc, ct),
                 RevenueToday = await db.Transactions
-                    .Where(t => t.CreatedAt >= now && t.Status == Core.Models.TransactionStatus.Success)
+                    .Where(t => t.CreatedAt >= startOfTodayUtc && t.Status == Core.Models.TransactionStatus.Success)
                     .SumAsync(t => t.Amount, ct),
                 RevenueThisMonth = await db.Transactions
-                    .Where(t => t.CreatedAt >= new DateTime(now.Year, now.Month, 1) && t.Status == Core.Models.TransactionStatus.Success)
+                    .Where(t => t.CreatedAt >= startOfMonthUtc && t.Status == Core.Models.TransactionStatus.Success)
                     .SumAsync(t => t.Amount, ct),
             };
             return Results.Ok(stats);
@@ -131,9 +172,23 @@ public static class OtherEndpoints
         {
             var user = await db.Users.FindAsync([userId], ct);
             if (user is null) return Results.NotFound();
-            // Ban logic: set role to indicate banned state (extend model as needed)
+            if (user.Role == BaoDo.Core.Models.UserRole.Admin) return Results.BadRequest("Không thể khóa tài khoản admin");
+            user.Role = BaoDo.Core.Models.UserRole.Banned;
             await db.SaveChangesAsync(ct);
-            return Results.Ok();
+            return Results.Ok(new { message = "Tài khoản đã bị khóa" });
+        });
+
+        group.MapPost("/users/{userId:guid}/unban", async (
+            Guid userId,
+            BaoDo.Infrastructure.Data.AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var user = await db.Users.FindAsync([userId], ct);
+            if (user is null) return Results.NotFound();
+            if (user.Role != BaoDo.Core.Models.UserRole.Banned) return Results.BadRequest("Tài khoản không bị khóa");
+            user.Role = BaoDo.Core.Models.UserRole.User;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Tài khoản đã được mở khóa" });
         });
     }
 

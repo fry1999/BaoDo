@@ -191,9 +191,22 @@ export interface UserTestResult {
   readingScaled: number
   totalScore: number
   durationSeconds: number
-  partBreakdown: PartScore[]
   answers: UserTestAnswer[]
   aiAnalysis?: AIAnalysis
+  completedAt: string
+}
+
+export interface ExamResultDto extends UserTestResult {
+  partBreakdown: PartScore[]
+}
+
+export interface ExamHistoryItem {
+  id: string
+  testId: string
+  testTitle: string
+  listeningScaled: number
+  readingScaled: number
+  totalScore: number
   completedAt: string
 }
 
@@ -278,6 +291,27 @@ export interface Transaction {
   provider: 'payos' | 'stripe'
   providerRef?: string
   createdAt: string
+}
+
+// ─── Ranking ─────────────────────────────────────────────────────────────────
+
+export type RankingPeriod = 'weekly' | 'monthly' | 'all'
+export type RankingType = 'exam' | 'xp'
+
+export interface RankingEntry {
+  rank: number
+  userId: string
+  fullName: string
+  avatarUrl?: string
+  level: number
+  bestScore: number
+  testsTaken: number
+  xpTotal: number
+}
+
+export interface UserRankResult {
+  rank: number
+  entry: RankingEntry | null
 }
 
 // ─── Admin ───────────────────────────────────────────────────────────────────

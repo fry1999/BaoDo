@@ -46,8 +46,10 @@ public class DictationService(AppDbContext db) : IDictationService
         var existing = await db.UserDictationProgress.FirstOrDefaultAsync(
             p => p.UserId == userId && p.ContentId == contentId && p.SegmentIndex == segmentIndex, ct);
 
+        var isNewCompletion = false;
         if (existing is null)
         {
+            isNewCompletion = accuracy >= 90;
             db.UserDictationProgress.Add(new UserDictationProgress
             {
                 Id = Guid.NewGuid(),
@@ -57,18 +59,32 @@ public class DictationService(AppDbContext db) : IDictationService
                 UserInput = input,
                 Accuracy = accuracy,
                 Attempts = 1,
-                CompletedAt = accuracy >= 90 ? DateTime.UtcNow : null,
+                CompletedAt = isNewCompletion ? DateTime.UtcNow : null,
             });
         }
         else
         {
+            isNewCompletion = accuracy >= 90 && existing.CompletedAt is null;
             existing.UserInput = input;
             existing.Accuracy = Math.Max(existing.Accuracy, accuracy);
             existing.Attempts++;
             if (accuracy >= 90) existing.CompletedAt ??= DateTime.UtcNow;
         }
 
+        // Award XP: +10 when a segment is first completed with accuracy >= 90%
+        if (isNewCompletion)
+            await AwardXpAsync(userId, 10, ct);
+
         await db.SaveChangesAsync(ct);
+    }
+
+    private async Task AwardXpAsync(Guid userId, int xp, CancellationToken ct)
+    {
+        var profile = await db.Users.FindAsync([userId], ct);
+        if (profile is null) return;
+        profile.XpTotal += xp;
+        profile.Level = profile.XpTotal / 500 + 1;
+        profile.LastActiveAt = DateTime.UtcNow;
     }
 }
 
@@ -132,6 +148,17 @@ public class ExamService(AppDbContext db, IAICoachService aiCoach) : IExamServic
         result.Answers = answerList;
 
         db.UserTestResults.Add(result);
+
+        // Award XP: 50 base + bonus up to 50 based on score
+        var xpBonus = (int)Math.Round(result.TotalScore / 990.0 * 50);
+        var profile = await db.Users.FindAsync([userId], ct);
+        if (profile is not null)
+        {
+            profile.XpTotal += 50 + xpBonus;
+            profile.Level = profile.XpTotal / 500 + 1;
+            profile.LastActiveAt = DateTime.UtcNow;
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Generate AI analysis asynchronously (fire and forget for fast response)
@@ -145,11 +172,58 @@ public class ExamService(AppDbContext db, IAICoachService aiCoach) : IExamServic
         return result;
     }
 
-    public async Task<UserTestResult?> GetResultAsync(Guid resultId, CancellationToken ct)
-        => await db.UserTestResults
+    public async Task<ExamResultDto?> GetResultAsync(Guid resultId, CancellationToken ct)
+    {
+        var result = await db.UserTestResults
             .Include(r => r.Answers)
             .Include(r => r.AIAnalysis)
             .FirstOrDefaultAsync(r => r.Id == resultId, ct);
+
+        if (result is null) return null;
+
+        var questionIds = result.Answers.Select(a => a.QuestionId).ToList();
+        var questionParts = await db.Questions
+            .Where(q => questionIds.Contains(q.Id))
+            .Select(q => new { q.Id, q.Part })
+            .ToDictionaryAsync(q => q.Id, q => q.Part, ct);
+
+        var partBreakdown = result.Answers
+            .Where(a => questionParts.ContainsKey(a.QuestionId))
+            .GroupBy(a => questionParts[a.QuestionId])
+            .Select(g =>
+            {
+                var total = g.Count();
+                var correct = g.Count(a => a.IsCorrect);
+                return new PartScore(g.Key, correct, total,
+                    total > 0 ? (int)Math.Round((double)correct / total * 100) : 0);
+            })
+            .OrderBy(ps => ps.Part)
+            .ToList();
+
+        return new ExamResultDto(
+            result.Id, result.UserId, result.TestId,
+            result.ListeningRaw, result.ReadingRaw,
+            result.ListeningScaled, result.ReadingScaled,
+            result.TotalScore, result.DurationSeconds,
+            result.CompletedAt, result.Answers, result.AIAnalysis,
+            partBreakdown);
+    }
+
+    public async Task<IEnumerable<ExamHistoryItem>> GetHistoryAsync(
+        Guid userId, int page, int pageSize, CancellationToken ct)
+    {
+        return await db.UserTestResults
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CompletedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Join(db.Tests, r => r.TestId, t => t.Id,
+                (r, t) => new ExamHistoryItem(
+                    r.Id, t.Id, t.Title,
+                    r.ListeningScaled, r.ReadingScaled,
+                    r.TotalScore, r.CompletedAt))
+            .ToListAsync(ct);
+    }
 
     /// Simplified TOEIC score conversion (use official ETS conversion table in production)
     private static (int listening, int reading) ConvertToScaled(int listeningRaw, int readingRaw)

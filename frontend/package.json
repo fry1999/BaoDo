@@ -10,29 +10,31 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "nuxt": "^4.4.2",
-    "vue": "^3.5.31",
-    "vue-router": "^5.0.4",
-    "@pinia/nuxt": "latest",
-    "pinia": "latest",
-    "@vite-pwa/nuxt": "latest",
-    "primevue": "latest",
-    "@primevue/nuxt-module": "latest",
-    "@primevue/themes": "latest",
-    "@nuxtjs/tailwindcss": "latest",
     "@nuxtjs/color-mode": "latest",
     "@nuxtjs/google-fonts": "latest",
-    "@vueuse/nuxt": "latest",
-    "@vueuse/core": "latest",
+    "@nuxtjs/tailwindcss": "latest",
+    "@pinia/nuxt": "latest",
+    "@primevue/nuxt-module": "latest",
+    "@primevue/themes": "latest",
     "@supabase/supabase-js": "latest",
+    "@vite-pwa/nuxt": "latest",
+    "@vueuse/core": "latest",
+    "@vueuse/nuxt": "latest",
     "dexie": "latest",
     "howler": "latest",
-    "pinia-plugin-persistedstate": "latest"
+    "nuxt": "^4.4.2",
+    "pinia": "latest",
+    "pinia-plugin-persistedstate": "latest",
+    "primevue": "latest",
+    "vue": "^3.5.31",
+    "vue-router": "^5.0.4"
   },
   "devDependencies": {
-    "typescript": "latest",
+    "@nuxt/devtools": "^4.0.0-alpha.3",
     "@types/howler": "latest",
+    "autoprefixer": "latest",
     "tailwindcss": "latest",
-    "autoprefixer": "latest"
+    "typescript": "latest",
+    "vite-plugin-vue-devtools": "^8.1.1"
   }
 }

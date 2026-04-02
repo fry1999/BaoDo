@@ -85,6 +85,7 @@ const mainNav = computed(() => [
 
 const examNav = [
   { to: '/exam', icon: '📋', label: 'Thi thử' },
+  { to: '/ranking', icon: '🏆', label: 'Bảng Xếp Hạng' },
 ]
 
 function isActive(path: string) {

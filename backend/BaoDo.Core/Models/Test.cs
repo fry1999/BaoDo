@@ -75,4 +75,23 @@ public class AIAnalysis
 public record WeakPoint(int Part, int Accuracy, string PriorityLevel, string Recommendation);
 public record WeeklyPlan(int Week, string Focus, List<string> Tasks);
 
+public record PartScore(int Part, int Correct, int Total, int Percentage);
+
+public record ExamResultDto(
+    Guid Id, Guid UserId, Guid TestId,
+    int ListeningRaw, int ReadingRaw,
+    int ListeningScaled, int ReadingScaled,
+    int TotalScore, int DurationSeconds,
+    DateTime CompletedAt,
+    ICollection<UserTestAnswer> Answers,
+    AIAnalysis? AiAnalysis,
+    List<PartScore> PartBreakdown
+);
+
+public record ExamHistoryItem(
+    Guid Id, Guid TestId, string TestTitle,
+    int ListeningScaled, int ReadingScaled,
+    int TotalScore, DateTime CompletedAt
+);
+
 public enum TestType { Full, Mini, Part }

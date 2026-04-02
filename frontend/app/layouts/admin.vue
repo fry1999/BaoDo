@@ -56,6 +56,7 @@ const navItems = [
   { to: '/admin', icon: '📊', label: 'Dashboard' },
   { to: '/admin/users', icon: '👥', label: 'Người dùng' },
   { to: '/admin/questions', icon: '❓', label: 'Ngân hàng câu hỏi' },
+  { to: '/admin/passages', icon: '📄', label: 'Passages' },
   { to: '/admin/vocabulary', icon: '📚', label: 'Từ vựng' },
   { to: '/admin/grammar', icon: '📝', label: 'Ngữ pháp' },
   { to: '/admin/tests', icon: '📋', label: 'Đề thi' },
